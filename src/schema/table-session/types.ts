@@ -46,4 +46,5 @@ export interface BookTableSessionInput {
     categoryPriceUuid: string;
     companyUuid: string;
     paymentMethod: PaymentMethodInput;
+    personCount?: number;
 }

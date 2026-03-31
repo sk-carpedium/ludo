@@ -16,3 +16,6 @@ uploads
 redis_ludo.conf
 redis_data_ludo
 redis_data_ludo/*
+
+# Firebase service account key (sensitive)
+src/config/firebase-service-account.json

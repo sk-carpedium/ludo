@@ -8,6 +8,7 @@ import { Status } from '../../database/entity/root/enums';
 import { PaymentMethodInput } from '../payment/types';
 import { Brackets } from 'typeorm';
 import { PagingInterface } from '../../interfaces';
+import whatsappQueue from '../../lib/whatsappQueue';
 
 export default class TournamentPlayer extends BaseModel {
     repository: any;
@@ -88,6 +89,12 @@ export default class TournamentPlayer extends BaseModel {
                 return this.formatErrors([GlobalError.ALREADY_EXISTS], 'Player already registered.');
             }
 
+            const to = `${customer.phoneCode || ''}${customer.phoneNumber || ''}`.replace(/\D/g, '');
+            const text = `Registration confirmed for ${tournament.name} on ${tournament.date} at ${tournament.startTime}. See you there!`;
+            console.log('WhatsApp message:', text);
+            if (to) {
+                try { await whatsappQueue.add({ to, text }); } catch (_) {}
+            }
             return this.successResponse(tournament);
         } catch (error: any) {
             return this.formatErrors([GlobalError.INTERNAL_SERVER_ERROR], error.message);

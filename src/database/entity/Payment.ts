@@ -38,6 +38,9 @@ import {
     @Index()
     tournamentId: number | null;
   
+    @Column({ type: 'int', default: 1 })
+    personCount: number;
+
     @Column({ type: 'numeric', precision: 10, scale: 2 })
     amount: number;
 

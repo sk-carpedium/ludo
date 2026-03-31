@@ -57,6 +57,11 @@ export class TableSession {
   @Min(0)
   freeMins?: number;
 
+  @Column('integer', { name: 'person_count', default: 1 })
+  @IsNumber()
+  @Min(1)
+  personCount: number;
+
   @Column({ type: 'enum', enum: TableSessionStatus, default: TableSessionStatus.BOOKED })
   status: TableSessionStatus;
 

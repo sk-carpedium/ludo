@@ -5,7 +5,8 @@ import schema from './shared/directives/loadSchema';
 import connection from "./database/connection";
 import { userLogin, userLogout, refreshToken, userPermissions } from "./endpoints/user";
 import { createOtp, verifyOtp, invite, validateInvite, resetPassword } from "./endpoints/reset.password";
-import { tableStats } from "./endpoints/dashboard";
+import { sendTemplate, sendText, webhookVerify, webhookReceiver } from './endpoints/whatsapp'
+import { tableStats, bookTableForCustomer } from "./endpoints/dashboard";
 import { tableSessionBilling } from "./endpoints/payment";
 import {basePath, disableAuthAccess, disableGraphqlIntrospection, getFakeAuth, NODE_ENV} from './shared/config'
 import { config }  from "dotenv"
@@ -29,14 +30,29 @@ app.use(bodyParser.json());
 /**
 * Configure cors. Whitelist origins for storing http only cookie on client-side.
 * */
-const allowedOrigins = ['https://app.cloudfitnest.com','https://dev.cloudfitnest.com','https://studio.apollographql.com','https://localhost','https://localhost:4000','http://localhost','http://localhost:5000','http://localhost:4000'];
+const allowedOrigins = [
+    'https://app.cloudfitnest.com',
+    'https://dev.cloudfitnest.com',
+    'https://studio.apollographql.com',
+    'https://localhost',
+    'https://localhost:4000',
+    'https://localhost:5000',
+    'http://localhost',
+    'http://localhost:3000',
+    'http://localhost:4000',
+    'http://localhost:5173',
+    'https://localhost:5173',
+    'http://127.0.0.1',
+    'http://127.0.0.1:5173',
+    'http://0.0.0.0:4000'
+];
 const corsOptions = {
     origin: allowedOrigins,
     optionsSuccessStatus: 200,
     credentials: true
 };
 app.use(cors(corsOptions));
-const port = process.env.NODE_PORT || 8080;
+const port = process.env.NODE_PORT || 8000;
 const prefix = 'api';
 
 /**
@@ -47,9 +63,14 @@ const setupAuthContext = async (connection: any, schema: any, req: any) => {
     let auth
     if (disableAuthAccess) {
         auth = getFakeAuth()
-    }else{
-        const { user }: any = await handleAuth({ req });
-        auth = user
+    } else {
+        try {
+            const { user }: any = await handleAuth({ req });
+            auth = user
+        } catch (err) {
+            // For public GraphQL operations, absence/invalidity of token should not block context creation.
+            auth = null
+        }
     }
     if(!authContext){
         authContext =  Context.getInstance(connection, schema, req, auth);
@@ -91,8 +112,14 @@ declare module 'express' {
         app.post(`/${prefix}/verify-otp`, verifyOtp)
         app.post(`/${prefix}/reset-password`, resetPassword)
         app.post(`/${prefix}/invite`, invite)
+        app.post(`/${prefix}/whatsapp/send-template`, sendTemplate)
+        app.post(`/${prefix}/whatsapp/send-text`, sendText)
+        app.get(`/${prefix}/whatsapp/webhook`, webhookVerify)
+        // Use raw body for webhook POST so we can verify signatures
+        app.post(`/${prefix}/whatsapp/webhook`, bodyParser.raw({ type: 'application/json', verify: (req: any, res, buf) => { req.rawBody = buf } }), webhookReceiver)
         app.get(`/${prefix}/validate-invite`, validateInvite)
         app.get(`/${prefix}/table-stats`, Auth, tableStats)
+        app.post(`/${prefix}/book-table`, Auth, bookTableForCustomer)
         app.get(`/${prefix}/table-session-billing`, Auth, tableSessionBilling)
 
         /**
@@ -103,9 +130,14 @@ declare module 'express' {
             introspection: !disableGraphqlIntrospection,
             async context({ req }) {
                 if(authContext){
-                    const { user }: any = await handleAuth({ req });
-                    authContext.setReq(req)
-                    authContext.setAuth(user)
+                    try {
+                        const { user }: any = await handleAuth({ req });
+                        authContext.setReq(req)
+                        authContext.setAuth(user)
+                    } catch (err) {
+                        authContext.setReq(req)
+                        authContext.setAuth(null)
+                    }
                 }
                 const ctx = authContext || await setupAuthContext(connection, schema, req);
                 ctx.req = req;
@@ -117,7 +149,7 @@ declare module 'express' {
         * Kickoff apollo and express server.
         * */
         await server.start();
-        server.applyMiddleware({ app, path: '/graphql', cors: { origin: allowedOrigins, credentials: true } });
+        server.applyMiddleware({ app, path: '/api/graphql', cors: { origin: allowedOrigins, credentials: true } });
         if(process.env.NODE_HOST?.indexOf('https') !== -1 && process.env.NODE_ENV === NODE_ENV.local){
             const sslOptions = {
                 key: fs.readFileSync(process.env.SSL_PRIVATE_KEY || '' ),

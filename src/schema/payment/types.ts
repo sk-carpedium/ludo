@@ -48,6 +48,7 @@ export interface TableSessionBillingInput {
     hours: number
     companyUuid: string
     categoryPriceUuid: string
+    personCount?: number
 }
 
 export interface PaymentPayload {
@@ -61,6 +62,10 @@ export interface PaymentPayload {
     taxRate?: number;
     taxAmount?: number;
     totalAmount?: number;
+    // Add table session related fields
+    tableSessionId?: number;
+    tournamentId?: number;
+    personCount?: number;
 }
 
 export interface PaymentMethodInput {

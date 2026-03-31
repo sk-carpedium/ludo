@@ -26,12 +26,14 @@ type Payment {
     totalAmount: Float 
     tournamentId: Int
     tableSessionId: Int
+    personCount: Int
 
     
     
     # Relations
     customer: Customer!
     invoice: _Invoice
+    tableSession: TableSession
 }
 
 extend type Query {

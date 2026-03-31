@@ -14,6 +14,7 @@ type TableSession {
     duration: Float
     unit: String
     totalAmount: Float
+    personCount: Int
     status: TableSessionStatus!
     
     # Relations
@@ -62,6 +63,7 @@ input BookTableSessionInput {
     tableUuid: ID!
     categoryPriceUuid: ID!
     paymentMethod:PaymentMethodInput!
+    personCount: Int
     taxRate: Float
     taxAmount: Float
     totalAmount: Float

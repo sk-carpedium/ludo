@@ -25,6 +25,11 @@ export const tableSessionBilling = async (req: any, res: Response) => {
             });
         }
 
+        // Normalize person count from query parameter
+        if (input.personCount) {
+            input.personCount = Number(input.personCount);
+        }
+
         // Process table session billing
         const result = await ctx.payment.tableSessionBilling(input);
 

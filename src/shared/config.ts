@@ -28,7 +28,15 @@ export const TEMP_DIR_PATH = path.resolve(__dirname,'../../temp');
 export const UPLOAD_DIR_PATH = path.resolve(__dirname,'../../uploads');
 export const OTP_EXPIRY_IN_MINS = 5
 export const APP_LOGO = 'https://cloudfitnest.s3.ap-south-1.amazonaws.com/cloudfitnest.PNG'
-export const GUPSHUP_API_URL = 'https://api.gupshup.io/wa/api/v1'
+export const GUPSHUP_API_URL = process.env.GUPSHUP_API_URL || 'https://api.gupshup.io/wa/api/v1'
+export const GUPSHUP_API_KEY = process.env.GUPSHUP_API_KEY || ''
+export const GUPSHUP_APP_NAME = process.env.GUPSHUP_APP_NAME || ''
+export const GUPSHUP_SOURCE = process.env.GUPSHUP_SOURCE || ''
+export const FACEBOOK_WA_API_BASE = process.env.FACEBOOK_WA_API_BASE || 'https://graph.facebook.com/v22.0'
+export const FACEBOOK_WA_TOKEN = process.env.FACEBOOK_WA_TOKEN || ''
+export const FACEBOOK_WA_PHONE_NUMBER_ID = process.env.FACEBOOK_WA_PHONE_NUMBER_ID || ''
+export const FACEBOOK_WA_VERIFY_TOKEN = process.env.FACEBOOK_WA_VERIFY_TOKEN || ''
+export const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || ''
 export const WEBHOOK_TYPE = {
     SUBSCRIPTION: 'SUBSCRIPTION'
 }

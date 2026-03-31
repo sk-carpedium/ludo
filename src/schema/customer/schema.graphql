@@ -6,8 +6,17 @@ type Customer {
     phoneCode: String
     phoneNumber: String
     phone: String
+    dob: String
     createdAt: Datetime!
     updatedAt: Datetime!
+}
+
+type CustomerDevice {
+    id: ID!
+    deviceToken: String!
+    deviceType: String!
+    fcmToken: String
+    customerId: Int!
 }
 
 extend type Query {
@@ -17,7 +26,9 @@ extend type Query {
 
 extend type Mutation {
     saveCustomer(input: SaveCustomerInput!): SaveCustomerPayload @requireAuth @requirePermissions(permissions: ["customer:upsert"])
+    registerCustomer(input: SaveCustomerInput!): SaveCustomerPayload
     deleteCustomer(uuid: ID!): DeleteCustomerPayload @requireAuth @requirePermissions(permissions: ["customer:delete"])
+    saveCustomerDevice(input: SaveCustomerDeviceInput!): CustomerDevice
 }
 
 input CustomerFilter {
@@ -44,8 +55,18 @@ input SaveCustomerInput {
     phoneCode: String!
     phoneNumber: String!
     companyUuid: ID!
+    dob: String
+    deviceToken: String
+    deviceType: String
+    fcmToken: String
 }
 
+input SaveCustomerDeviceInput {
+    deviceToken: String!
+    deviceType: String!
+    fcmToken: String
+    customerUuid: ID!
+}
 
 type SaveCustomerPayload {
     data: Customer

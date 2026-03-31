@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import moment from 'moment';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { mapKeys, keys, snakeCase, isArray, map, camelCase } from 'lodash';
 import assert from "assert";
 import querystring from "querystring";

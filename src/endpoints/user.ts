@@ -57,10 +57,11 @@ export const userLogin = async (req:Request, res:Response) => {
         }
         const token = sign({uuid: user.uuid, key}, jwtConfig.jwtSecretKey ,{ expiresIn: jwtConfig.accessTokenTTL })
         const refreshToken = sign({id: user.id, key}, jwtConfig.jwtSecretKey ,{ expiresIn: jwtConfig.refreshTokenTTL })
-        res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, maxAge: jwtConfig.refreshTokenCookieExpiry });
+        res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: false, maxAge: jwtConfig.refreshTokenCookieExpiry });
         res.send({ token, status: true, message: 'Logged in successfully!', user: payload })
     }catch (e) {
         console.log(e)
+        return res.status(500).send({ status: false, message: 'Internal server error' })
     }
 }
 

@@ -20,10 +20,11 @@ import PaymentModel from './payment/model';
 import CompanyModel from './company/model';
 import TournamentRoundModel from './tournament-round/model';
 import TournamentRoundPlayerModel from './tournament-round-player/model';
+import CustomerDeviceModel from './customer-device/model';
 import User from './user/model';
 
 export default class Context {
-    static instance:Context;
+    static instance: Context;
     otp: OtpModel;
     auth: UserEntity;
     user: UserModel;
@@ -47,10 +48,11 @@ export default class Context {
     permission: PermissionModel;
     rolePermission: RolePermissionModel;
     req: object;
-    transporter:Transporter;
+    transporter: Transporter;
     authId: string;
-
+    customerDevice: CustomerDeviceModel;
     constructor(connection: any, schema: any, req?: any, auth?: any) {
+        this.customerDevice = new CustomerDeviceModel(connection, this);
         this.otp = new OtpModel(connection, this);
         this.auth = auth;
         this.user = new UserModel(connection, this);
@@ -92,11 +94,11 @@ export default class Context {
         return this.instance;
     }
 
-    setReq(req:any){
+    setReq(req: any) {
         this.req = req
     }
 
-    setAuth(auth:any){
+    setAuth(auth: any) {
         this.auth = auth
         this.authId = auth ? auth.id : null;
     }

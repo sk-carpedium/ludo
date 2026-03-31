@@ -12,6 +12,8 @@ import { PaymentStatus } from '../payment/types';
 import { accessRulesByRoleHierarchyUuid, accessRulesByRoleHierarchy } from '../../shared/lib/DataRoleUtils';
 import moment from 'moment';
 import { TableStatus } from '../table/types';
+import whatsappQueue from '../../lib/whatsappQueue';
+import { NotificationHooks } from '../../services/notificationHooks';
 
 export default class TableSession extends BaseModel {
     repository: any;
@@ -134,6 +136,10 @@ export default class TableSession extends BaseModel {
             return this.formatErrors([GlobalError.ALREADY_EXISTS], "Table already has a booked session");
         }
 
+        if (input.personCount && (!Number.isInteger(input.personCount) || input.personCount < 1)) {
+            return this.formatErrors([GlobalError.INVALID_INPUT], "personCount must be an integer greater than 0");
+        }
+
         return { data, errors, errorMessage };
     }
 
@@ -147,24 +153,28 @@ export default class TableSession extends BaseModel {
 
         try {
             const transaction = await this.connection.manager.transaction(async (transactionalEntityManager: any) => {
+                const personCount = input.personCount && Number.isInteger(input.personCount) && input.personCount > 0 ? input.personCount : 1;
                 const session = transactionalEntityManager.create(this.repository.target, {
                     customerId: data.customer.id,
                     tableId: data.table.id,
                     status: TableSessionStatus.BOOKED,
                     unit: categoryPrice.unit,
                     duration: categoryPrice.duration,
-                    freeMins: categoryPrice.freeMins
+                    freeMins: categoryPrice.freeMins,
+                    personCount,
                 });
 
                 await transactionalEntityManager.save(session);
 
+                const computedAmount = Number(categoryPrice.price) * personCount;
                 const payment = await this.context.payment.createPayment(transactionalEntityManager, {
                     customerId: data.customer.id,
                     tableSessionId: session.id,
-                    amount: categoryPrice.price,
+                    amount: computedAmount,
                     method: input.paymentMethod.paymentScheme,
                     status: PaymentStatus.SUCCESS,
-                    calculateTax: true, 
+                    calculateTax: true,
+                    personCount,
                 });
 
                 if (!payment || !payment.status) {
@@ -180,6 +190,26 @@ export default class TableSession extends BaseModel {
             if (transaction && transaction.error && transaction.error.length > 0) {
                 console.log('transaction.error: ', transaction.error);
                 return this.formatErrors([GlobalError.EXCEPTION], transaction.error);
+            }
+
+            // Send WhatsApp notification using the new notification service
+            try {
+                await NotificationHooks.onTableBooked({
+                    customer: data.customer,
+                    table: data.table,
+                    categoryPrice: categoryPrice,
+                    session: transaction
+                });
+            } catch (notificationError) {
+                console.error('Failed to send table booking notification:', notificationError);
+                // Don't fail the booking if notification fails
+            }
+
+            // Keep the old notification for backward compatibility (can be removed later)
+            const to = `${data.customer.phoneCode || ''}${data.customer.phoneNumber || ''}`.replace(/\D/g, '');
+            const text = `Table booking confirmed: ${data.table.name}. Duration ${categoryPrice.duration} ${categoryPrice.unit}.`;
+            if (to) {
+                try { await whatsappQueue.add({ to, text }); } catch (_) {}
             }
 
             return this.successResponse(transaction);
@@ -228,6 +258,26 @@ export default class TableSession extends BaseModel {
                 startTime.add(session.freeMins, 'minutes')
             }
             savedSession.startTime = startTime.toISOString()
+
+            // Send session started notification
+            try {
+                // Get customer and table data for notification
+                const sessionWithRelations = await this.repository.findOne({
+                    where: { id: savedSession.id },
+                    relations: ['customer', 'table']
+                });
+
+                if (sessionWithRelations) {
+                    await NotificationHooks.onTableSessionStarted({
+                        customer: sessionWithRelations.customer,
+                        table: sessionWithRelations.table,
+                        session: savedSession
+                    });
+                }
+            } catch (notificationError) {
+                console.error('Failed to send session started notification:', notificationError);
+                // Don't fail the session start if notification fails
+            }
     
             return this.successResponse(savedSession);
         } catch (error: any) {
@@ -295,13 +345,17 @@ export default class TableSession extends BaseModel {
                 
                 await transactionalEntityManager.save(session);
 
+                const rechargePersonCount = session.personCount || 1;
+                const rechargeAmount = Number(categoryPrice.price) * rechargePersonCount;
+
                 const payment = await this.context.payment.createPayment(transactionalEntityManager, {
                     customerId: data.tableSession.customer.id,
                     tableSessionId: session.id,
-                    amount: categoryPrice.price,
+                    amount: rechargeAmount,
                     method: input.paymentMethod.paymentScheme,
                     status: PaymentStatus.SUCCESS,
-                    calculateTax: true, 
+                    calculateTax: true,
+                    personCount: rechargePersonCount,
                 });
 
                 if (!payment || !payment.status) {

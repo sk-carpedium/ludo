@@ -8,6 +8,8 @@ import {
     Index,
 } from 'typeorm';
 import { Length } from 'class-validator';
+import { OneToMany } from 'typeorm';
+import { CustomerDevice } from './CustomerDevice';
 
 @Entity({ name: 'customers' })
 export class Customer extends BaseEntity {
@@ -37,6 +39,9 @@ export class Customer extends BaseEntity {
     @Index()
     companyId!: number;
 
+    @Column('date', { name: 'dob', nullable: true })
+    dob?: Date | null;
+
     @CreateDateColumn({
         type: 'timestamptz',
         default: () => 'CURRENT_TIMESTAMP(6)',
@@ -51,4 +56,7 @@ export class Customer extends BaseEntity {
         name: 'updated_at',
     })
     updatedAt!: Date;
+
+    @OneToMany(() => CustomerDevice, (device) => device.customer)
+    devices!: CustomerDevice[];
 }

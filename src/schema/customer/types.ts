@@ -5,6 +5,10 @@ export interface CustomerInput {
     phoneCode?: string
     phoneNumber?: string
     companyUuid: string
+    dob?: string | null
+    deviceToken?: string
+    fcmToken?: string | null
+    deviceType?: string
 }
 
 export interface CustomerFilter {
