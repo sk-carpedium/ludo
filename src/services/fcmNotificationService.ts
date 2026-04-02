@@ -144,26 +144,26 @@ export const fcmNotificationService = {
         data?: Record<string, string>,
         debugInfo?: { customerId?: string; deviceIndex?: number; totalDevices?: number }
     ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-        initializeFirebaseAdmin();
-
+        
         const debug = debugInfo || {};
         const deviceDesc = debug.deviceIndex !== undefined 
-            ? `Device ${debug.deviceIndex + 1}/${debug.totalDevices}` 
-            : 'Device';
-
+        ? `Device ${debug.deviceIndex + 1}/${debug.totalDevices}` 
+        : 'Device';
+        
         // Validation
         if (!fcmToken || fcmToken.trim() === '') {
             console.log(`   ❌ ${deviceDesc}: No FCM token provided. Cannot send notification.`);
             return { success: false, error: 'No FCM token' };
         }
-
+        
         if (!firebaseAvailable) {
             console.log(`   ⚠️  ${deviceDesc}: Firebase not available. Notification NOT sent.`);
             console.log(`       Reason: ${initializationError || 'Unknown'}`);
             console.log(`       Setup: Check server startup logs for Firebase initialization status`);
             return { success: false, error: initializationError || 'Firebase not available' };
         }
-
+        
+        initializeFirebaseAdmin();
         try {
             // Build message
             const message = {
@@ -177,7 +177,7 @@ export const fcmNotificationService = {
                         Urgency: 'high'
                     },
                     fcmOptions: {
-                        link: '/auth/thank-you'
+                        link: '/thank-you'
                     },
                     notification: {
                         title,
@@ -186,7 +186,7 @@ export const fcmNotificationService = {
                         badge: '/ludo-icon.png',
                         tag: 'booking-notification',
                         requireInteraction: true,
-                        click_action: '/auth/thank-you'
+                        click_action: '/thank-you'
                     }
                 },
                 android: {
@@ -259,6 +259,7 @@ export const fcmNotificationService = {
         debugInfo?: { customerId?: string; customerName?: string }
     ): Promise<{ successCount: number; failureCount: number; details: any[] }> {
         initializeFirebaseAdmin();
+        console.log('step 5')
 
         const debug = debugInfo || {};
         const customerDesc = debug.customerName 

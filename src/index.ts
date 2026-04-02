@@ -5,7 +5,7 @@ import schema from './shared/directives/loadSchema';
 import connection from "./database/connection";
 import { userLogin, userLogout, refreshToken, userPermissions } from "./endpoints/user";
 import { createOtp, verifyOtp, invite, validateInvite, resetPassword } from "./endpoints/reset.password";
-import { sendTemplate, sendText, webhookVerify, webhookReceiver } from './endpoints/whatsapp'
+
 import { tableStats, bookTableForCustomer } from "./endpoints/dashboard";
 import { tableSessionBilling } from "./endpoints/payment";
 import {basePath, disableAuthAccess, disableGraphqlIntrospection, getFakeAuth, NODE_ENV} from './shared/config'
@@ -112,11 +112,7 @@ declare module 'express' {
         app.post(`/${prefix}/verify-otp`, verifyOtp)
         app.post(`/${prefix}/reset-password`, resetPassword)
         app.post(`/${prefix}/invite`, invite)
-        app.post(`/${prefix}/whatsapp/send-template`, sendTemplate)
-        app.post(`/${prefix}/whatsapp/send-text`, sendText)
-        app.get(`/${prefix}/whatsapp/webhook`, webhookVerify)
-        // Use raw body for webhook POST so we can verify signatures
-        app.post(`/${prefix}/whatsapp/webhook`, bodyParser.raw({ type: 'application/json', verify: (req: any, res, buf) => { req.rawBody = buf } }), webhookReceiver)
+
         app.get(`/${prefix}/validate-invite`, validateInvite)
         app.get(`/${prefix}/table-stats`, Auth, tableStats)
         app.post(`/${prefix}/book-table`, Auth, bookTableForCustomer)

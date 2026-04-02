@@ -70,15 +70,17 @@ export const tableStats = async (req: Request, res: Response) => {
  */
 export const bookTableForCustomer = async (req: Request, res: Response) => {
     try {
+         console.log('step 0')
         const ctx = Context.getInstance(connection, schema, req, req.user);
-        
+        console.log('step 1')
+
         const { customerId, tableId, duration, unit, freeMins, startTime, endTime, personCount } = req.body;
 
         // Validate required fields
         if (!customerId || !tableId || !duration || !unit) {
-            return res.status(400).json({ 
-                status: false, 
-                message: 'customerId, tableId, duration, and unit are required' 
+            return res.status(400).json({
+                status: false,
+                message: 'customerId, tableId, duration, and unit are required'
             });
         }
 
@@ -89,10 +91,12 @@ export const bookTableForCustomer = async (req: Request, res: Response) => {
             where: { id: customerId }
         });
 
+         console.log('step 2')
+
         if (!customer) {
-            return res.status(404).json({ 
-                status: false, 
-                message: 'Customer not found' 
+            return res.status(404).json({
+                status: false,
+                message: 'Customer not found'
             });
         }
 
@@ -102,25 +106,31 @@ export const bookTableForCustomer = async (req: Request, res: Response) => {
         });
 
         if (!table) {
-            return res.status(404).json({ 
-                status: false, 
-                message: 'Table not found' 
+            return res.status(404).json({
+                status: false,
+                message: 'Table not found'
             });
         }
+
+         console.log('step 3')
 
         // Check if table is already booked or active
         const existingSession = await ctx.tableSession.repository.findOne({
             where: { tableId: tableId, status: TableSessionStatus.BOOKED }
         });
 
+         console.log('step 4')
+
         const activeSession = await ctx.tableSession.repository.findOne({
             where: { tableId: tableId, status: TableSessionStatus.ACTIVE }
         });
 
+         console.log('step 5')
+
         if (existingSession || activeSession) {
-            return res.status(409).json({ 
-                status: false, 
-                message: 'Table is already booked or in use' 
+            return res.status(409).json({
+                status: false,
+                message: 'Table is already booked or in use'
             });
         }
 
@@ -137,12 +147,18 @@ export const bookTableForCustomer = async (req: Request, res: Response) => {
             status: TableSessionStatus.BOOKED
         };
 
+         console.log('step 6')
+
         const savedSession = await ctx.tableSession.repository.save(sessionData);
+
+         console.log('step 7')
 
         // Fetch customer devices for FCM notification
         const customerDevices = await ctx.customerDevice.repository.find({
             where: { customerId: customerId }
         });
+
+         console.log('step 8')
 
         console.log(`📱 Found ${customerDevices?.length || 0} device(s) for customer ${customer.uuid}`);
 
@@ -154,11 +170,12 @@ export const bookTableForCustomer = async (req: Request, res: Response) => {
 
             console.log(`📱 Devices with FCM tokens: ${fcmTokens.length}/${customerDevices.length}`);
             console.log(`📱 FCM Tokens:`, fcmTokens.map((token: string) => token.substring(0, 20) + '...'));
+            console.log(fcmTokens)
 
             if (fcmTokens.length > 0) {
                 const notificationTitle = '🎮 Table Booked!';
                 const notificationBody = `Table ${table.name} has been booked for you! Duration: ${duration}${unit}`;
-                
+
                 const notificationData = {
                     tableId: tableId.toString(),
                     tableUuid: table.uuid,
@@ -202,10 +219,10 @@ export const bookTableForCustomer = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Error booking table:', error);
-        return res.status(500).json({ 
-            status: false, 
+        return res.status(500).json({
+            status: false,
             message: 'Internal server error',
-            error: error.message 
+            error: error.message
         });
     }
 };
