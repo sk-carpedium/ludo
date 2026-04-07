@@ -7,7 +7,7 @@ import { userLogin, userLogout, refreshToken, userPermissions } from "./endpoint
 import { createOtp, verifyOtp, invite, validateInvite, resetPassword } from "./endpoints/reset.password";
 
 import { tableStats, bookTableForCustomer } from "./endpoints/dashboard";
-import { tableSessionBilling } from "./endpoints/payment";
+import { tableSessionBilling, publicReceipt, publicTournamentReceipt } from "./endpoints/payment";
 import {basePath, disableAuthAccess, disableGraphqlIntrospection, getFakeAuth, NODE_ENV} from './shared/config'
 import { config }  from "dotenv"
 import Context from "./schema/context";
@@ -117,6 +117,8 @@ declare module 'express' {
         app.get(`/${prefix}/table-stats`, Auth, tableStats)
         app.post(`/${prefix}/book-table`, Auth, bookTableForCustomer)
         app.get(`/${prefix}/table-session-billing`, Auth, tableSessionBilling)
+        app.get(`/${prefix}/public-receipt/:sessionUuid`, publicReceipt)
+        app.get(`/${prefix}/public-receipt/tournament/:tournamentUuid/:customerUuid`, publicTournamentReceipt)
 
         /**
          * Provide schema and resolvers to apollo server instance.

@@ -22,9 +22,9 @@ export class NotificationHooks {
             }
 
             if (customerDevices && customerDevices.length > 0) {
-                const fcmTokens = customerDevices
+                const fcmTokens = Array.from(new Set(customerDevices
                     .map((device: any) => device.fcmToken)
-                    .filter((token: any) => token);
+                    .filter((token: any) => token)));
                 
                 if (fcmTokens.length > 0) {
                     await fcmNotificationService.sendToMultipleDevices(
@@ -69,12 +69,14 @@ export class NotificationHooks {
         try {
             console.log(`Triggering table booking notification for customer: ${bookingData.customer.uuid}`);
             const title = '🎉 Table Booked!';
-            const body = `Your booking for ${bookingData.table.name} is confirmed!`;
+            const categoryName = bookingData.table.category?.name ? `(${bookingData.table.category.name})` : '';
+            const body = `Your booking for ${bookingData.table.name} ${categoryName} is confirmed!`;
             const data = {
                 tableUuid: bookingData.table.uuid,
                 sessionId: bookingData.session.uuid,
                 tableName: bookingData.table.name,
-                type: 'TABLE_BOOKED'
+                type: 'TABLE_BOOKED',
+                link: `/receipt/${bookingData.session.uuid}`
             };
             await this.sendFCMToCustomer(bookingData.customer.id, title, body, data, bookingData.customer.uuid);
         } catch (error) {
@@ -91,11 +93,11 @@ export class NotificationHooks {
         session: any;
     }): Promise<void> {
         try {
-            console.log(`Triggering session started notification for customer: ${sessionData.customer.uuid}`);
-            const title = '⏳ Session Started';
-            const body = `Your session at ${sessionData.table.name} has started. Have fun!`;
-            const data = { tableUuid: sessionData.table.uuid, type: 'SESSION_STARTED' };
-            await this.sendFCMToCustomer(sessionData.customer.id, title, body, data, sessionData.customer.uuid);
+            // console.log(`Triggering session started notification for customer: ${sessionData.customer.uuid}`);
+            // const title = '⏳ Session Started';
+            // const body = `Your session at ${sessionData.table.name} has started. Have fun!`;
+            // const data = { tableUuid: sessionData.table.uuid, type: 'SESSION_STARTED' };
+            // await this.sendFCMToCustomer(sessionData.customer.id, title, body, data, sessionData.customer.uuid);
         } catch (error) {
             console.error('Error in onTableSessionStarted hook:', error);
         }
@@ -112,7 +114,11 @@ export class NotificationHooks {
             console.log(`Triggering tournament registration notification for customer: ${registrationData.customer.uuid}`);
             const title = '🏆 Tournament Registration Confirmed!';
             const body = `You are registered for ${registrationData.tournament.name}. Good luck!`;
-            const data = { tournamentUuid: registrationData.tournament.uuid, type: 'TOURNAMENT_REGISTERED' };
+            const data = { 
+                tournamentUuid: registrationData.tournament.uuid, 
+                type: 'TOURNAMENT_REGISTERED',
+                link: `/receipt/tournament/${registrationData.tournament.uuid}/${registrationData.customer.uuid}`
+            };
             await this.sendFCMToCustomer(registrationData.customer.id, title, body, data, registrationData.customer.uuid);
         } catch (error) {
             console.error('Error in onTournamentRegistration hook:', error);

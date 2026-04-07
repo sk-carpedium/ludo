@@ -23,6 +23,9 @@ export class Category extends BaseEntity {
     @Column({ default: 'PKR' })
     currencyName!: string;
 
+    @Column({ name: 'enable_person_count', type: 'boolean', default: false })
+    enablePersonCount!: boolean;
+
     @Column({ name: 'company_id' })
     @Index()
     companyId!: number;

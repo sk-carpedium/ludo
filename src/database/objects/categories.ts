@@ -12,6 +12,7 @@ export const categories = (input:CategoryInput) => [
             name: 'Regular',
             hourlyRate: 500,
             currencyName: 'PKR',
+            enablePersonCount: false,
             companyId: input.companyId
         },
         {
@@ -19,6 +20,7 @@ export const categories = (input:CategoryInput) => [
             name: 'Special',
             hourlyRate: 1000,
             currencyName: 'PKR',
+            enablePersonCount: false,
             companyId: input.companyId
         },
         {
@@ -26,6 +28,7 @@ export const categories = (input:CategoryInput) => [
             name: 'Premium',
             hourlyRate: 2000,
             currencyName: 'PKR',
+            enablePersonCount: false,
             companyId: input.companyId
         },
 ]

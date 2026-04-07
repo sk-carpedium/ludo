@@ -177,7 +177,7 @@ export const fcmNotificationService = {
                         Urgency: 'high'
                     },
                     fcmOptions: {
-                        link: '/thank-you'
+                        link: data?.link || '/receipt'
                     },
                     notification: {
                         title,
@@ -186,7 +186,7 @@ export const fcmNotificationService = {
                         badge: '/ludo-icon.png',
                         tag: 'booking-notification',
                         requireInteraction: true,
-                        click_action: '/thank-you'
+                        click_action: data?.link || '/receipt'
                     }
                 },
                 android: {

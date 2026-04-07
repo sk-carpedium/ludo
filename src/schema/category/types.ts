@@ -10,7 +10,9 @@ export interface CategoryInput {
     uuid?: string
     companyUuid: string
     name: string
-    hourlyRate: number
+    hourlyRate?: number
+    currencyName?: string
+    enablePersonCount?: boolean
     categoryPrices?: CategoryPriceInput[]
 }
 

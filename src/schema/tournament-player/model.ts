@@ -8,6 +8,7 @@ import { Status } from '../../database/entity/root/enums';
 import { PaymentMethodInput } from '../payment/types';
 import { Brackets } from 'typeorm';
 import { PagingInterface } from '../../interfaces';
+import { NotificationHooks } from '../../services/notificationHooks';
 
 
 export default class TournamentPlayer extends BaseModel {
@@ -173,6 +174,16 @@ export default class TournamentPlayer extends BaseModel {
 
                 return savedTournamentPlayer;
             });
+
+            try {
+                await NotificationHooks.onTournamentRegistration({
+                    customer,
+                    tournament,
+                });
+            } catch (notificationError) {
+                console.error('Failed to send tournament registration notification:', notificationError);
+                // Notification failure should not fail registration
+            }
 
             return this.successResponse(tournament);
         } catch (error: any) {

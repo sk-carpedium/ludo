@@ -36,6 +36,7 @@ export default class Category extends BaseModel {
             .leftJoinAndSelect('t.tableSessions', 'ts', 'ts.status IN (:...activeStatuses)', { 
                 activeStatuses: [TableSessionStatus.ACTIVE, TableSessionStatus.BOOKED] 
             })
+            .leftJoinAndSelect('ts.customer', 'tsc')
             .andWhere('c.companyId = :companyId', { companyId: company.id })
         
         if (!isEmpty(params?.searchText)) {
@@ -65,9 +66,8 @@ export default class Category extends BaseModel {
 
     mainQuery() {
         return this.repository.createQueryBuilder('c')
-        .leftJoinAndSelect('c.tables', 't')
+        .leftJoinAndSelect('c.tables', 't', 't.status != :inactiveStatus', { inactiveStatus: TableStatus.INACTIVE })
         .leftJoinAndSelect('c.categoryPrices', 'cp')
-        .where('t.status != :inactiveStatus', { inactiveStatus: TableStatus.INACTIVE })
     }
 
     async saveValidate(input: CategoryInput) {
@@ -89,6 +89,19 @@ export default class Category extends BaseModel {
             }
         }
 
+        if (input.categoryPrices && input.categoryPrices.length > 0) {
+            for (const p of input.categoryPrices) {
+                const duration = Number(p.duration);
+                const priceVal = Number(p.price);
+                if (!Number.isFinite(duration) || duration < 1) {
+                    return this.formatErrors([GlobalError.INVALID_INPUT], 'Each price must have duration at least 1');
+                }
+                if (!Number.isFinite(priceVal) || priceVal < 0) {
+                    return this.formatErrors([GlobalError.INVALID_INPUT], 'Each price must be a valid non-negative number');
+                }
+            }
+        }
+
         return {data, errors, errorMessage};
     }
 
@@ -102,8 +115,20 @@ export default class Category extends BaseModel {
             const {existingEntity, company} = data;
             let category = existingEntity || new CategoryEntity();
             const transaction = await this.connection.manager.transaction(async (transactionalEntityManager: any) => {
+                const firstPrice = input.categoryPrices?.[0];
+                const hourlyRateRaw = input.hourlyRate ?? existingEntity?.hourlyRate ?? 0;
+                const hourlyRateNum = Number(hourlyRateRaw);
                 category.name = input.name;
-                category.hourlyRate = input.hourlyRate;
+                category.hourlyRate = Number.isFinite(hourlyRateNum) && hourlyRateNum >= 0 ? hourlyRateNum : 0;
+                category.currencyName =
+                    input.currencyName?.trim() ||
+                    firstPrice?.currencyName?.trim() ||
+                    existingEntity?.currencyName ||
+                    'PKR';
+                category.enablePersonCount =
+                    input.enablePersonCount === undefined || input.enablePersonCount === null
+                        ? Boolean(existingEntity?.enablePersonCount)
+                        : Boolean(input.enablePersonCount);
                 category.companyId = company.id;
                 category.createdById = category.createdById || this.context.auth.id;
                 category.lastUpdatedById = this.context.auth.id;
@@ -120,16 +145,23 @@ export default class Category extends BaseModel {
                         .execute();
                     
                     // Create new category prices
-                    const categoryPrices = input.categoryPrices.map(price => 
-                        transactionalEntityManager.create(this.context.categoryPrice.repository.target, {
+                    const categoryPrices = input.categoryPrices.map((price) => {
+                        const duration = Math.floor(Number(price.duration));
+                        const priceVal = Number(price.price);
+                        const freeMinsRaw =
+                            price.freeMins === undefined || price.freeMins === null
+                                ? 0
+                                : Number(price.freeMins);
+                        const freeMins = Number.isFinite(freeMinsRaw) && freeMinsRaw >= 0 ? Math.floor(freeMinsRaw) : 0;
+                        return transactionalEntityManager.create(this.context.categoryPrice.repository.target, {
                             categoryId: category.id,
-                            price: price.price,
+                            price: priceVal,
                             unit: price.unit,
-                            duration: price.duration,
-                            freeMins: price.freeMins,
+                            duration,
+                            freeMins,
                             currencyName: price.currencyName || 'PKR'
-                        })
-                    );
+                        });
+                    });
 
                     await transactionalEntityManager.save(categoryPrices);
                 }

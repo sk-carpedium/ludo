@@ -136,7 +136,9 @@ export default class TableSession extends BaseModel {
             return this.formatErrors([GlobalError.ALREADY_EXISTS], "Table already has a booked session");
         }
 
-        if (input.personCount && (!Number.isInteger(input.personCount) || input.personCount < 1)) {
+        const isPerPersonEnabled = Boolean(data.table?.category?.enablePersonCount);
+
+        if (isPerPersonEnabled && input.personCount && (!Number.isInteger(input.personCount) || input.personCount < 1)) {
             return this.formatErrors([GlobalError.INVALID_INPUT], "personCount must be an integer greater than 0");
         }
 
@@ -153,7 +155,8 @@ export default class TableSession extends BaseModel {
 
         try {
             const transaction = await this.connection.manager.transaction(async (transactionalEntityManager: any) => {
-                const personCount = input.personCount && Number.isInteger(input.personCount) && input.personCount > 0 ? input.personCount : 1;
+                const isPerPersonEnabled = Boolean(data.table?.category?.enablePersonCount);
+                const personCount = isPerPersonEnabled && input.personCount && Number.isInteger(input.personCount) && input.personCount > 0 ? input.personCount : 1;
                 const session = transactionalEntityManager.create(this.repository.target, {
                     customerId: data.customer.id,
                     tableId: data.table.id,
@@ -184,7 +187,11 @@ export default class TableSession extends BaseModel {
                 data.table.status = TableStatus.BOOKED;
                 await transactionalEntityManager.save(data.table);
 
-                return session;
+                // Fetch with relations
+                return await transactionalEntityManager.findOne(this.repository.target, {
+                    where: { id: session.id },
+                    relations: ['customer']
+                });
             });
 
             if (transaction && transaction.error && transaction.error.length > 0) {
@@ -275,7 +282,12 @@ export default class TableSession extends BaseModel {
                 // Don't fail the session start if notification fails
             }
     
-            return this.successResponse(savedSession);
+            // Return with customer
+            const finalSession = await this.repository.findOne({
+                where: { id: savedSession.id },
+                relations: ['customer']
+            });
+            return this.successResponse(finalSession);
         } catch (error: any) {
             return this.formatErrors([GlobalError.INTERNAL_SERVER_ERROR], error.message);
         }
@@ -358,7 +370,11 @@ export default class TableSession extends BaseModel {
                     throw new Error('Payment processing failed');
                 }
 
-                return session;
+                // Return with customer
+                return await transactionalEntityManager.findOne(this.repository.target, {
+                    where: { id: session.id },
+                    relations: ['customer']
+                });
             });   
     
             if (transaction && transaction.error && transaction.error.length > 0) {
@@ -404,12 +420,11 @@ export default class TableSession extends BaseModel {
                 return updatedSession;
             });
 
-            if (result && result.error && result.error.length > 0) {
-                console.log('transaction.error: ', result.error);
-                return this.formatErrors([GlobalError.EXCEPTION], result.error)
-            }
-
-            return this.successResponse(result);
+            const finalSession = await this.repository.findOne({
+                where: { id: result.id },
+                relations: ['customer']
+            });
+            return this.successResponse(finalSession);
         } catch (error: any) {
             return this.formatErrors([GlobalError.INTERNAL_SERVER_ERROR], error.message);
         }
@@ -445,7 +460,11 @@ export default class TableSession extends BaseModel {
                 return this.formatErrors([GlobalError.EXCEPTION], transaction.error)
             }
 
-            return this.successResponse(transaction);
+            const finalSession = await this.repository.findOne({
+                where: { id: transaction.id },
+                relations: ['customer']
+            });
+            return this.successResponse(finalSession);
         } catch (error: any) {
             return this.formatErrors(GlobalError.INTERNAL_SERVER_ERROR, error.message);
         }
