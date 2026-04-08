@@ -47,7 +47,11 @@ const allowedOrigins = [
     'http://0.0.0.0:4000'
 ];
 const corsOptions = {
-    origin: allowedOrigins,
+    origin: (origin: string | undefined, callback: any) => {
+        // Allow all origins for development and testing on the live server
+        // In a strict production environment, you would specify the exact domain
+        callback(null, true);
+    },
     optionsSuccessStatus: 200,
     credentials: true
 };
